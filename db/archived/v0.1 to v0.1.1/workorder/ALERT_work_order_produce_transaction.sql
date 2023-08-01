@@ -1,0 +1,3 @@
+ALTER TABLE work_order_produce_transaction ADD COLUMN consume_by_bom_id BIGINT;
+
+ALTER TABLE work_order_produce_transaction ADD foreign key(consume_by_bom_id) references bill_of_material(bill_of_material_id)

@@ -1,0 +1,1 @@
+update menu set name = 'Util-File-Upload' where link = "/util/file-upload"

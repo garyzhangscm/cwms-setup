@@ -1,0 +1,11 @@
+ALTER TABLE work_order_line_consume_transaction ADD COLUMN consume_from_work_order_id BIGINT;
+
+ALTER TABLE work_order_line_consume_transaction ADD foreign key(consume_from_work_order_id) references work_order(work_order_id);
+
+
+ALTER TABLE work_order_line_consume_transaction ADD COLUMN consume_from_work_order_quantity BIGINT;
+ 
+
+ALTER TABLE work_order_line_consume_transaction ADD COLUMN consume_from_work_order_production_line_id BIGINT;
+
+ALTER TABLE work_order_line_consume_transaction ADD foreign key(consume_from_work_order_production_line_id) references production_line(production_line_id);

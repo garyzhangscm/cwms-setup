@@ -1,0 +1,105 @@
+ 
+DROP TABLE if exists integration_shipment_line; 
+DROP TABLE if exists integration_shipment; 
+DROP TABLE if exists integration_stop; 
+DROP TABLE if exists integration_trailer_appointment; 
+    
+
+CREATE TABLE integration_trailer_appointment (
+  integration_trailer_appointment_id      BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  company_id BIGINT,
+  company_code VARCHAR(100),
+  warehouse_id BIGINT,
+  warehouse_name VARCHAR(100),
+  number   VARCHAR(100) NOT NULL,
+  description   VARCHAR(2000) NOT NULL,
+  type   VARCHAR(100) NOT NULL,
+  error_message VARCHAR(1000),
+  status VARCHAR(10) NOT NULL,
+  created_time DATETIME,
+  created_by VARCHAR(50),
+  last_modified_time DATETIME,
+  last_modified_by VARCHAR(50)); 
+ 
+CREATE TABLE integration_stop (
+  integration_stop_id      BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  company_id BIGINT,
+  company_code VARCHAR(100),
+  warehouse_id BIGINT,
+  warehouse_name VARCHAR(100),
+  number   VARCHAR(100) NOT NULL,
+  sequence   INTEGER NOT NULL,
+  contactor_firstname VARCHAR(100),
+  contactor_lastname VARCHAR(100),
+  address_country VARCHAR(100),
+  address_state VARCHAR(100),
+  address_county VARCHAR(100),
+  address_city VARCHAR(100),
+  address_district VARCHAR(100),
+  address_line1 VARCHAR(100),
+  address_line2 VARCHAR(100),
+  address_postcode VARCHAR(100),
+  integration_trailer_appointment_id BIGINT  NOT NULL,
+  error_message VARCHAR(1000),
+  status VARCHAR(10) NOT NULL,
+  created_time DATETIME,
+  created_by VARCHAR(50),
+  last_modified_time DATETIME,
+  last_modified_by VARCHAR(50),
+  foreign key(integration_trailer_appointment_id) references integration_trailer_appointment(integration_trailer_appointment_id)); 
+ 
+CREATE TABLE integration_shipment (
+  integration_shipment_id      BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  company_id BIGINT,
+  company_code VARCHAR(100),
+  warehouse_id BIGINT,
+  warehouse_name VARCHAR(100),
+  number   VARCHAR(100) NOT NULL,
+  carrier_id   BIGINT,
+  carrier_name VARCHAR(100),
+  carrier_service_level_id   BIGINT,
+  carrier_service_level_name VARCHAR(100),
+  client_id   BIGINT,
+  client_name VARCHAR(100),
+  order_id   BIGINT,
+  order_number VARCHAR(100),
+  ship_to_customer_id   BIGINT,
+  ship_to_customer_name VARCHAR(100),
+  ship_to_contactor_firstname VARCHAR(100),
+  ship_to_contactor_lastname VARCHAR(100),
+  ship_to_address_country VARCHAR(100),
+  ship_to_address_state VARCHAR(100),
+  ship_to_address_county VARCHAR(100),
+  ship_to_address_city VARCHAR(100),
+  ship_to_address_district VARCHAR(100),
+  ship_to_address_line1 VARCHAR(100),
+  ship_to_address_line2 VARCHAR(100),
+  ship_to_address_postcode VARCHAR(100),
+  integration_stop_id BIGINT  NOT NULL,
+  error_message VARCHAR(1000),
+  status VARCHAR(10) NOT NULL,
+  created_time DATETIME,
+  created_by VARCHAR(50),
+  last_modified_time DATETIME,
+  last_modified_by VARCHAR(50),
+  foreign key(integration_stop_id) references integration_stop(integration_stop_id)); 
+  
+CREATE TABLE integration_shipment_line (
+  integration_shipment_line_id      BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  company_id BIGINT,
+  company_code VARCHAR(100),
+  warehouse_id BIGINT,
+  warehouse_name VARCHAR(100),
+  number   VARCHAR(100) NOT NULL,
+  order_line_id   BIGINT,
+  order_line_number VARCHAR(100), 
+  integration_shipment_id BIGINT  NOT NULL,
+  error_message VARCHAR(1000),
+  status VARCHAR(10) NOT NULL,
+  created_time DATETIME,
+  created_by VARCHAR(50),
+  last_modified_time DATETIME,
+  last_modified_by VARCHAR(50),
+  foreign key(integration_shipment_id) references integration_shipment(integration_shipment_id)); 
+  
+   

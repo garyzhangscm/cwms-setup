@@ -1,0 +1,2 @@
+ALTER TABLE warehouse_configuration ADD COLUMN location_utilization_snapshot_enabled BOOLEAN NOT NULL DEFAULT 0;
+ALTER TABLE warehouse_configuration ADD COLUMN inventory_aging_snapshot_enabled BOOLEAN NOT NULL DEFAULT 0;

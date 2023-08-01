@@ -1,0 +1,1 @@
+ALTER TABLE integration_purchase_order ADD COLUMN quickbook_vendor_list_id VARCHAR(100) ; 

@@ -1,0 +1,1 @@
+ALTER TABLE report  ADD COLUMN printer_type_id BIGINT;

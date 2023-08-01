@@ -1,0 +1,1 @@
+remove pick_list_id FOREIGN key

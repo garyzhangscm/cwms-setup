@@ -1,0 +1,1 @@
+ALTER TABLE cancelled_pick ADD CONSTRAINT  'cancelled_pick_unique_index' unique ('number', 'warehouse_id');

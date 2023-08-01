@@ -1,0 +1,1 @@
+ALTER TABLE rf_info ADD COLUMN printer_name VARCHAR(50);

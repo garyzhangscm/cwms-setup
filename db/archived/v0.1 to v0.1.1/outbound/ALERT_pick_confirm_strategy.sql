@@ -1,0 +1,1 @@
+ALTER TABLE pick_confirm_strategy ADD COLUMN confirm_lpn_flag bool not null default false; 

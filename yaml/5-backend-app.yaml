@@ -1,0 +1,1292 @@
+#
+# General configuration for all applications
+#
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-properties
+  namespace: staging 
+data:
+  application.yml: |
+    server:
+      compression:
+        enabled: true
+      connection-timeout: -1
+    # ==============================================================
+    # = Data Source
+    # ==============================================================
+    spring:
+      main:
+        allow-circular-references: true
+        allow-bean-definition-overriding: true
+      servlet:
+        multipart:
+          max-file-size: 50MB
+          max-request-size: 128MB
+          enabled: true
+      http:
+        encoding:
+          charset: utf-8
+          enabled: true
+          force: true
+        multipart:
+          enabled: true
+          max-file-size: 50MB
+          max-request-size: 128MB
+      jackson:
+        serialization:
+          FAIL_ON_EMPTY_BEANS: false
+      datasource:
+        # ===================================================
+        # = Docker based mysql
+        # ===================================================
+        # URL when we use DOCKER to create a temp database
+        url: "jdbc:mysql://database:3306/cwms?serverTimezone=UTC&useLegacyDatetimeCode=false"
+        # URL when we use AWS RDS 
+        driverClassName: com.mysql.cj.jdbc.Driver
+        username: cwms_dba
+        password: "mysqlPassword" 
+        initialization-mode: always
+          
+        # ==============================================================
+        # = Keep the connection alive if idle for a long time (needed in production)
+        # ==============================================================
+        testWhileIdle: true
+        validationQuery: SELECT 1
+
+        type: com.zaxxer.hikari.HikariDataSource
+        hikari:
+          minimum-idle: 5
+          idle-timeout: 180000
+          maximum-pool-size: 30
+          max-lifetime: 300000
+      # ==============================================================
+      # = Show or not log for each sql query
+      # ==============================================================
+      jpa:
+        show-sql: true
+        # ==============================================================
+        # = Hibernate ddl auto (create, create-drop, update)
+        # ==============================================================
+        hibernate:
+          ddl-auto: none
+        properties:
+          hibernate:
+            dialect: org.hibernate.dialect.MySQL5Dialect
+            enable_lazy_load_no_trans: true
+            jdbc:
+              time_zone: UTC
+              # time_zone: "-07:00"
+              # time_zone: "America/Los_Angeles"
+              # time_zone: "America/New_York"
+              # time_zone: "America/Chicago"
+
+
+      #============== kafka ===================
+      # 指定kafka 代理地址，可以多个
+      kafka:
+        bootstrap-servers: "kafkaservice:9092"
+        #=============== provider  =======================
+        producer:
+          retries: 0
+          # 每次批量发送消息的数量
+          batch-size: 16384
+          buffer-memory: 33554432
+          # 指定消息key和消息体的编解码方式
+          key-serializer: org.apache.kafka.common.serialization.StringSerializer
+          value-serializer: org.apache.kafka.common.serialization.StringSerializer
+        #=============== consumer  =======================
+        # 指定默认消费者group id
+        consumer:
+          group-id: consumer-group
+          auto-offset-reset: earliest
+          enable-auto-commit: true
+          auto-commit-interval: 100
+          # 指定消息key和消息体的编解码方式
+          key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+          value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        listener:
+          missing-topics-fatal: false
+      #=============== Redis  =================
+      # Setup redis server
+      redis:
+        database: 0 
+        host: redis
+        port: 6379  
+        # Redis服务器连接密码（默认为空）
+        #password=zwqh
+        timeout: 3000
+        ################ Redis 线程池设置 ##############
+        # 连接池最大连接数（使用负值表示没有限制） 默认 8
+        lettuce:
+          pool:
+            max-active: 8
+            # 连接池最大阻塞等待时间（使用负值表示没有限制） 默认 -1
+            max-wait: -1
+            # 连接池中的最大空闲连接 默认 8
+            max-idle: 8
+            # 连接池中的最小空闲连接 默认 0
+            min-idle: 0
+    
+    # disable the host api, which means the integration won't push the integration to 
+    # other host. Instead, other host will need to pull from integration server. 
+    # 1. When we install the application locally, we sugggest PUSH to dblink
+    # 2. When we install the application on cloud, we suggest other system to pull from the integration service
+    host:
+      api:
+        enabled: false
+    mail:
+      fromMail:
+        address: xxxxxxxxx@gmail.com
+        
+    security:
+      oauth2:
+        client:
+          access-token-uri: http://authserver:8901/oauth/token
+          clientId: "cwms"
+          clientSecret: "gz-cwms"
+          grantType: password
+          scope: webclient
+        resource:
+          userInfoUri: http://authserver:8901/user
+          tokenInfoUri: http://authserver:8901/oauth/check_token
+
+
+    logging:
+      level:
+        org:
+          springframework:
+            web: DEBUG
+          #hibernate:
+            #type: trace
+        com.garyzhangscm: DEBUG
+        com.netflix: DEBUG
+      file: cwms-app.log
+      path: /tmp/logs
+                   
+      
+    site:
+      company:
+        singleCompany: false
+        defaultCompanyCode: 20901
+      allowDataInitialFlag: true
+      serverSidePrinting: true  # Obsoleted
+      # Test printers, for test purpose
+      printers:
+        url: http://10.0.10.5:10888
+        testPrintersOnly: true
+        testPrinters:
+          - name: Zebra-DPI-200-001
+            description: Zebra DPI 200 #1
+          - name: Zebra-DPI-200-002
+            description: Zebra DPI 200 #2
+          - name: Zebra-DPI-300-001
+            description: Zebra DPI 300 #1
+      
+      
+    admin:
+      login:
+        username: ADMIN_USER
+        password: ADMIN_USER
+      dataTransfer:
+        folder: /usr/local/dataTransfer
+    
+    outbound:
+      login:
+        username: INTEGRATION_USER
+        password: INTEGRATION_USER
+      order:
+        document:
+          folder: /usr/local/order/document
+      shipment:
+        document:
+          folder: /usr/local/shipment/document
+    integration:
+      record:
+        process:
+          limit: 100
+      login:
+        username: INTEGRATION_USER
+        password: INTEGRATION_USER
+    dblink:
+      host:
+        ip: 10.0.10.37
+        port: 30974 
+    quickbook:
+      qbo:
+        url: https://sandbox-quickbooks.api.intuit.com/v3/company
+      encryption:
+        key: 0123456789abcdef
+      webhooks:
+        verifier:
+          token: xxxxxxxxxxx
+    report:
+      template:
+        folder: /usr/local/reports/templates
+        tempFolder: /usr/local/reports/templates_temp
+        resourceFolder: reports/meta
+      customizedTemplate:
+        folder: /usr/local/reports/customized/templates        
+      result:
+        folder: /usr/local/reports/results
+    inventory:
+      snapshot:
+        folder: /usr/local/inventory/snapshot
+      qc:
+        documentFolder: /usr/local/inventory/qc_document
+    item:
+      qc:
+        sampleImageFolder: /usr/local/item/qc/sample_image
+    workorder:
+      qc:
+        sampleImageFolder: /user/local/workorder/qc/sample_image
+        sampleImageTempFolder: /user/local/workorder/qc/temp_sample_image
+    rf:
+      app:
+        apkTempFolder: /usr/local/rf/app/apk_temp
+        apkFolder: /usr/local/rf/app/apk/
+    parcel:
+      shipEngine:
+      # Test Key
+        apiKey: xxxxxxxxxxx
+    google:
+      map:
+        apiKey: xxxxxxxxxxx
+    usps:
+      api:
+        username: xxxxxxxxxxx
+---
+###
+# backend application
+# 1. auth
+# 2. Layout server
+# 3. resource server
+###
+apiVersion: v1
+kind: Service
+metadata:
+  name: authserver
+  namespace: staging
+  labels:
+    app: authserver
+spec:
+  selector:
+    app: authserver
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 8901
+      targetPort: 8901
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authserver
+  namespace: staging
+  labels:
+    app: authserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: authserver
+  template:
+    metadata:
+      labels:
+        app: authserver
+    spec:
+      nodeSelector:
+        subnet: t4g-private
+      containers:
+      - name: authserver
+        image: garyzhangscm/cwms-auth:v1.15
+        args: ["--spring.config.location=/usr/local/service/application.yml", "--spring.profiles.active=echotech-staging" , "--server.port=8901", "--spring.application.name=authservice", "--server.contextPath=/auth"]
+        imagePullPolicy: Always
+#        resources:
+#          limits:
+#            cpu: "0.5"
+#            memory: "512Mi"
+#          requests:
+#            cpu: "0.25"
+#            memory: "256Mi"
+        ports:
+        - containerPort: 8901
+        #livenessProbe:
+        #  httpGet:
+        #    path: /probe/live
+        #    port: 8901
+        #  failureThreshold: 1
+        #  periodSeconds: 30
+        #startupProbe:
+        #  httpGet:
+        #    path: /probe/live
+        #    port: 8901
+        #  failureThreshold: 20
+        #  periodSeconds: 30
+        #  initialDelaySeconds: 30
+        env: 
+#        - name: CONFIGSERVER_URI
+#          value: "http://configserver:8888"
+#        - name: CONFIGSERVER_PORT
+#          value: "8888"
+#        - name: DATABASE_URL
+#          value: "database"
+#        - name: DATABASESERVER_PORT
+#          value: "3306"
+        - name: ENCRYPT_KEY
+          value: "CWMS2018"
+        - name: COMPOSE_PROJECT_NAME
+          value: "CWMS-APP"
+        - name: TZ
+          value: "America/Los_Angeles"
+        volumeMounts:
+        - name: application-properties
+          mountPath: /usr/local/service/application.yml
+          subPath: application.yml
+      volumes:
+      - name: application-properties
+        configMap:
+          name: app-properties
+          items:
+            - key: application.yml
+              path: application.yml 
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: layoutservice
+  namespace: staging
+  labels:
+    app: layoutservice
+spec:
+  selector:
+    app: layoutservice
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 8180
+      targetPort: 8180
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: layoutservice
+  namespace: staging
+  labels:
+    app: layoutservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: layoutservice
+  template:
+    metadata:
+      labels:
+        app: layoutservice
+    spec:
+      nodeSelector:
+        subnet: t4g-private
+      containers:
+      - name: layoutservice
+        image: garyzhangscm/cwms-layoutserver:v1.15
+        args: ["--spring.config.location=/usr/local/service/application.yml", "--spring.profiles.active=echotech-staging", "--server.port=8180", "--spring.application.name=layoutservice"]
+        imagePullPolicy: Always
+#        resources:
+#          limits:
+#            cpu: "0.5"
+#            memory: "512Mi"
+#          requests:
+#            cpu: "0.25"
+#            memory: "256Mi"
+        ports:
+        - containerPort: 8180
+        #livenessProbe:
+        #  httpGet:
+        #    path: /probe/live
+        #    port: 8180
+        ##  failureThreshold: 1
+        #  periodSeconds: 30
+        #startupProbe:
+        #  httpGet:
+        #    path: /probe/live
+        #    port: 8180
+        #  failureThreshold: 20
+        #  periodSeconds: 30
+        #  initialDelaySeconds: 30
+        env:
+         # IN the kubernetes environment, we no longer need a configuration server
+#        - name: SPRING_PROFILE
+#          value: "aws-staging"
+#        - name: CONFIGSERVER_URI
+#          value: "http://configserver:8888"
+#        - name: CONFIGSERVER_PORT
+#          value: "8888"
+#        - name: DATABASE_URL
+#          value: "database"
+#        - name: DATABASESERVER_PORT
+#          value: "3306"
+        - name: ENCRYPT_KEY
+          value: "CWMS2018"
+        - name: COMPOSE_PROJECT_NAME
+          value: "CWMS-APP"
+        - name: TZ
+          value: "America/Los_Angeles"
+        volumeMounts:
+        - name: application-properties
+          mountPath: /usr/local/service/application.yml
+          subPath: application.yml
+      volumes:
+      - name: application-properties
+        configMap:
+          name: app-properties
+          items:
+            - key: application.yml
+              path: application.yml 
+---          
+apiVersion: v1
+kind: Service
+metadata:
+  name: resourceservice
+  namespace: staging
+  labels:
+    app: resourceservice
+spec:
+  selector:
+    app: resourceservice
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 8280
+      targetPort: 8280
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resourceservice
+  namespace: staging
+  labels:
+    app: resourceservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: resourceservice
+  template:
+    metadata:
+      labels:
+        app: resourceservice
+    spec:
+      nodeSelector:
+        subnet: t4g-private
+      containers:
+      - name: resourceservice
+        image: garyzhangscm/cwms-ressvr:v1.15
+        imagePullPolicy: Always
+        args: ["--spring.config.location=/usr/local/service/application.yml", "--spring.profiles.active=echotech-staging", "--server.port=8280", "--spring.application.name=resourceservice"]
+        # securityContext:
+        #   privileged: true
+#        volumeMounts:
+#        - name: report-volume
+#          mountPath: /usr/local/reports
+#        resources:
+#          limits:
+#            cpu: "0.5"
+#            memory: "512Mi"
+#          requests:
+#            cpu: "0.25"
+#            memory: "256Mi"
+        ports:
+        - containerPort: 8280
+        #livenessProbe:
+        #  httpGet:
+        #    path: /probe/live
+        #    port: 8280
+        #  failureThreshold: 1
+        #  periodSeconds: 30
+        #startupProbe:
+        #  httpGet:
+        #    path: /probe/live
+        #    port: 8280
+        #  failureThreshold: 20
+        #  periodSeconds: 30
+        #  initialDelaySeconds: 30
+        env:
+         # IN the kubernetes environment, we no longer need a configuration server
+#        - name: SPRING_PROFILE
+#          value: "aws-staging"
+#        - name: CONFIGSERVER_URI
+#          value: "http://configserver:8888"
+#        - name: CONFIGSERVER_PORT
+#          value: "8888"
+#        - name: DATABASE_URL
+#          value: "database"
+#        - name: DATABASESERVER_PORT
+#          value: "3306"
+        - name: ENCRYPT_KEY
+          value: "CWMS2018"
+        - name: COMPOSE_PROJECT_NAME
+          value: "CWMS-APP"
+        - name: TZ
+          value: "America/Los_Angeles"
+        - name: LANG
+          value: "C.UTF-8"
+        # Load path to add additional class path
+        # to load the i18n resource bundle for 
+        # report
+        - name: LOADER_PATH
+          value: /usr/local/reports/templates/
+#      volumes:
+#        - name: report-volume
+#          awsElasticBlockStore:
+#            fsType: ext4
+#            volumeID: vol-0dcdfdb14f5a23ebf
+#        volumeMounts:
+#        - mountPath: /sys/fs/cgroup
+#          name: cgr
+#          readOnly: true  
+        volumeMounts:
+        - name: application-properties
+          mountPath: /usr/local/service/application.yml
+          subPath: application.yml
+        - name: customized-report-folder
+          mountPath: /usr/local/reports/customized/templates
+        # - mountPath: "/usr/local/reports/customized/templates"
+        #   name: report-pv-storage
+      volumes:
+      - name: application-properties
+        configMap:
+          name: app-properties
+          items:
+            - key: application.yml
+              path: application.yml 
+      - name: customized-report-folder
+        hostPath:
+          # 宿主上目录位置
+          path: /usr/local/reports/customized/templates
+          # 此字段为可选
+          type: DirectoryOrCreate
+      # - name: report-pv-storage
+      #   persistentVolumeClaim:
+      #     claimName: report-pv-claim
+---          
+apiVersion: v1
+kind: Service
+metadata:
+  name: commonservice
+  namespace: staging
+  labels:
+    app: commonservice
+spec:
+  selector:
+    app: commonservice
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 8380
+      targetPort: 8380
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: commonservice
+  namespace: staging
+  labels:
+    app: commonservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: commonservice
+  template:
+    metadata:
+      labels:
+        app: commonservice
+    spec:
+      nodeSelector:
+        subnet: t4g-private
+      containers:
+      - name: commonservice
+        image: garyzhangscm/cwms-commonserver:v1.15
+        args: ["--spring.config.location=/usr/local/service/application.yml", "--spring.profiles.active=echotech-staging", "--server.port=8380", "--spring.application.name=commonservice"]
+        imagePullPolicy: Always
+#        volumeMounts:
+#        - name: report-volume
+#          mountPath: /usr/local/reports
+#        resources:
+#          limits:
+#            cpu: "0.5"
+#            memory: "512Mi"
+#          requests:
+#            cpu: "0.25"
+#            memory: "256Mi"
+        ports:
+        - containerPort: 8380
+        #livenessProbe:
+        #  httpGet:
+        #    path: /probe/live
+        #    port: 8380
+        #  failureThreshold: 1
+        #  periodSeconds: 30
+        #startupProbe:
+        #  httpGet:
+        #    path: /probe/live
+        #    port: 8380
+        #  failureThreshold: 20
+        #  periodSeconds: 30
+        #  initialDelaySeconds: 30
+        env:
+         # IN the kubernetes environment, we no longer need a configuration server
+#        - name: SPRING_PROFILE
+#          value: "aws-staging"
+#        - name: CONFIGSERVER_URI
+#          value: "http://configserver:8888"
+#        - name: CONFIGSERVER_PORT
+#          value: "8888"
+#        - name: DATABASE_URL
+#          value: "database"
+#        - name: DATABASESERVER_PORT
+#          value: "3306"
+        - name: ENCRYPT_KEY
+          value: "CWMS2018"
+        - name: COMPOSE_PROJECT_NAME
+          value: "CWMS-APP"
+        - name: TZ
+          value: "America/Los_Angeles"
+        volumeMounts:
+        - name: application-properties
+          mountPath: /usr/local/service/application.yml
+          subPath: application.yml
+      volumes:
+      - name: application-properties
+        configMap:
+          name: app-properties
+          items:
+            - key: application.yml
+              path: application.yml 
+#      volumes:
+#        - name: report-volume
+#          awsElasticBlockStore:
+#            fsType: ext4
+#            volumeID: vol-0dcdfdb14f5a23ebf
+---          
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventoryservice
+  namespace: staging
+  labels:
+    app: inventoryservice
+spec:
+  selector:
+    app: inventoryservice
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 8480
+      targetPort: 8480
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventoryservice
+  namespace: staging
+  labels:
+    app: inventoryservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inventoryservice
+  template:
+    metadata:
+      labels:
+        app: inventoryservice
+    spec:
+      nodeSelector:
+        subnet: t4g-private
+      containers:
+      - name: inventoryservice
+        image: garyzhangscm/cwms-inventoryserver:v1.15
+        args: ["--spring.config.location=/usr/local/service/application.yml", "--spring.profiles.active=echotech-staging", "--server.port=8480", "--spring.application.name=inventoryservice"]
+        imagePullPolicy: Always
+#        resources:
+#          limits:
+#            cpu: "0.5"
+#            memory: "512Mi"
+#          requests:
+#            cpu: "0.25"
+#            memory: "256Mi"
+        ports:
+        - containerPort: 8480
+        #livenessProbe:
+        #  httpGet:
+        #    path: /probe/live
+        #    port: 8480
+        #  failureThreshold: 1
+        #  periodSeconds: 30
+        #startupProbe:
+        #  httpGet:
+        #    path: /probe/live
+        #    port: 8480
+        #  failureThreshold: 20
+        #  periodSeconds: 30
+        #  initialDelaySeconds: 30
+        env:
+         # IN the kubernetes environment, we no longer need a configuration server
+#        - name: SPRING_PROFILE
+#          value: "aws-staging"
+#        - name: CONFIGSERVER_URI
+#          value: "http://configserver:8888"
+#        - name: CONFIGSERVER_PORT
+#          value: "8888"
+#        - name: DATABASE_URL
+#          value: "database"
+#        - name: DATABASESERVER_PORT
+#          value: "3306"
+        - name: ENCRYPT_KEY
+          value: "CWMS2018"
+        - name: COMPOSE_PROJECT_NAME
+          value: "CWMS-APP"
+        - name: TZ
+          value: "America/Los_Angeles"
+        volumeMounts:
+        - name: application-properties
+          mountPath: /usr/local/service/application.yml
+          subPath: application.yml          
+        - name: inventory-snapshot-folder
+          mountPath: /usr/local/inventory/snapshot
+      volumes:
+      - name: application-properties
+        configMap:
+          name: app-properties
+          items:
+            - key: application.yml
+              path: application.yml              
+      - name: inventory-snapshot-folder
+        hostPath:
+          # 宿主上目录位置
+          path: /usr/local/inventory/snapshot
+          # 此字段为可选
+          type: DirectoryOrCreate
+---          
+apiVersion: v1
+kind: Service
+metadata:
+  name: inboundservice
+  namespace: staging
+  labels:
+    app: inboundservice
+spec:
+  selector:
+    app: inboundservice
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 8580
+      targetPort: 8580
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inboundservice
+  namespace: staging
+  labels:
+    app: inboundservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inboundservice
+  template:
+    metadata:
+      labels:
+        app: inboundservice
+    spec:
+      nodeSelector:
+        subnet: t4g-private
+      containers:
+      - name: inboundservice
+        image: garyzhangscm/cwms-inboundserver:v1.15
+        args: ["--spring.config.location=/usr/local/service/application.yml", "--spring.profiles.active=echotech-staging", "--server.port=8580", "--spring.application.name=inboundservice"]
+        imagePullPolicy: Always
+#        resources:
+#          limits:
+#            cpu: "0.5"
+#            memory: "512Mi"
+#          requests:
+#            cpu: "0.25"
+#            memory: "256Mi"
+        ports:
+        - containerPort: 8580
+        #livenessProbe:
+        #  httpGet:
+        #    path: /probe/live
+        #    port: 8580
+        #  failureThreshold: 1
+        #  periodSeconds: 30
+        #startupProbe:
+        #  httpGet:
+        #    path: /probe/live
+        #    port: 8580
+        #  failureThreshold: 20
+        #  periodSeconds: 30
+        #  initialDelaySeconds: 30
+        env:
+         # IN the kubernetes environment, we no longer need a configuration server
+#        - name: SPRING_PROFILE
+#          value: "aws-staging"
+#        - name: CONFIGSERVER_URI
+#          value: "http://configserver:8888"
+#        - name: CONFIGSERVER_PORT
+#          value: "8888"
+#        - name: DATABASE_URL
+#          value: "database"
+#        - name: DATABASESERVER_PORT
+#          value: "3306"
+        - name: ENCRYPT_KEY
+          value: "CWMS2018"
+        - name: COMPOSE_PROJECT_NAME
+          value: "CWMS-APP"
+        - name: TZ
+          value: "America/Los_Angeles"
+        volumeMounts:
+        - name: application-properties
+          mountPath: /usr/local/service/application.yml
+          subPath: application.yml
+      volumes:
+      - name: application-properties
+        configMap:
+          name: app-properties
+          items:
+            - key: application.yml
+              path: application.yml 
+---          
+apiVersion: v1
+kind: Service
+metadata:
+  name: outboundservice
+  namespace: staging
+  labels:
+    app: outboundservice
+spec:
+  selector:
+    app: outboundservice
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 8680
+      targetPort: 8680
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outboundservice
+  namespace: staging
+  labels:
+    app: outboundservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: outboundservice
+  template:
+    metadata:
+      labels:
+        app: outboundservice
+    spec:
+      nodeSelector:
+        subnet: t4g-private
+      containers:
+      - name: outboundservice
+        image: garyzhangscm/cwms-outboundserver:v1.15
+        args: ["--spring.config.location=/usr/local/service/application.yml", "--spring.profiles.active=echotech-staging", "--server.port=8680", "--spring.application.name=outboundervice"]
+        imagePullPolicy: Always
+#        resources:
+#          limits:
+#            cpu: "0.5"
+#            memory: "512Mi"
+#          requests:
+#            cpu: "0.25"
+#            memory: "256Mi"
+        ports:
+        - containerPort: 8680
+        #livenessProbe:
+        #  httpGet:
+        #    path: /probe/live
+        #    port: 8680
+        #  failureThreshold: 1
+        #  periodSeconds: 30
+        #startupProbe:
+        #  httpGet:
+        #    path: /probe/live
+        #    port: 8680
+        #  failureThreshold: 20
+        #  periodSeconds: 30
+        #  initialDelaySeconds: 30
+        env:
+         # IN the kubernetes environment, we no longer need a configuration server
+#        - name: SPRING_PROFILE
+#          value: "aws-staging"
+#        - name: CONFIGSERVER_URI
+#          value: "http://configserver:8888"
+#        - name: CONFIGSERVER_PORT
+#          value: "8888"
+#        - name: DATABASE_URL
+#          value: "database"
+#        - name: DATABASESERVER_PORT
+#          value: "3306"
+        - name: ENCRYPT_KEY
+          value: "CWMS2018"
+        - name: COMPOSE_PROJECT_NAME
+          value: "CWMS-APP"
+        - name: TZ
+          value: "America/Los_Angeles"
+        volumeMounts:
+        - name: application-properties
+          mountPath: /usr/local/service/application.yml
+          subPath: application.yml
+      volumes:
+      - name: application-properties
+        configMap:
+          name: app-properties
+          items:
+            - key: application.yml
+              path: application.yml 
+---          
+apiVersion: v1
+kind: Service
+metadata:
+  name: workorderservice
+  namespace: staging
+  labels:
+    app: workorderservice
+spec:
+  selector:
+    app: workorderservice
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 8780
+      targetPort: 8780
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workorderservice
+  namespace: staging
+  labels:
+    app: workorderservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: workorderservice
+  template:
+    metadata:
+      labels:
+        app: workorderservice
+    spec:
+      nodeSelector:
+        subnet: t4g-private
+      containers:
+      - name: workorderservice
+        image: garyzhangscm/cwms-workorderserver:v1.15
+        args: ["--spring.config.location=/usr/local/service/application.yml", "--spring.profiles.active=echotech-staging", "--server.port=8780", "--spring.application.name=workorderservice"]
+        imagePullPolicy: Always
+#        resources:
+#          limits:
+#            cpu: "0.5"
+#            memory: "512Mi"
+#          requests:
+#            cpu: "0.25"
+#            memory: "256Mi"
+        ports:
+        - containerPort: 8780
+        #livenessProbe:
+        #  httpGet:
+        #    path: /probe/live
+        #    port: 8780
+        #  failureThreshold: 1
+        #  periodSeconds: 30
+        #startupProbe:
+        #  httpGet:
+        #   path: /probe/live
+        #    port: 8780
+        #  failureThreshold: 20
+        #  periodSeconds: 30
+        #  initialDelaySeconds: 30
+        env:
+         # IN the kubernetes environment, we no longer need a configuration server
+#        - name: SPRING_PROFILE
+#          value: "aws-staging"
+#        - name: CONFIGSERVER_URI
+#          value: "http://configserver:8888"
+#        - name: CONFIGSERVER_PORT
+#          value: "8888"
+#        - name: DATABASE_URL
+#          value: "database"
+#        - name: DATABASESERVER_PORT
+#          value: "3306"
+        - name: ENCRYPT_KEY
+          value: "CWMS2018"
+        - name: COMPOSE_PROJECT_NAME
+          value: "CWMS-APP"
+        - name: TZ
+          value: "America/Los_Angeles"
+        volumeMounts:
+        - name: application-properties
+          mountPath: /usr/local/service/application.yml
+          subPath: application.yml
+      volumes:
+      - name: application-properties
+        configMap:
+          name: app-properties
+          items:
+            - key: application.yml
+              path: application.yml 
+---          
+apiVersion: v1
+kind: Service
+metadata:
+  name: integrationservice
+  namespace: staging
+  labels:
+    app: integrationservice
+spec:
+  selector:
+    app: integrationservice
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 8880
+      targetPort: 8880
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: integrationservice
+  namespace: staging
+  labels:
+    app: integrationservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: integrationservice
+  template:
+    metadata:
+      labels:
+        app: integrationservice
+    spec:
+      nodeSelector:
+        subnet: t4g-private
+      containers:
+      - name: integrationservice
+        image: garyzhangscm/cwms-integrationserver:v1.15
+        args: ["--spring.config.location=/usr/local/service/application.yml", "--spring.profiles.active=echotech-staging,DBBasedIntegration", "--server.port=8880", "--spring.jackson.serialization.fail-on-empty-beans=false", "--spring.application.name=integrationservice"]
+        imagePullPolicy: Always
+#        resources:
+#          limits:
+#            cpu: "0.5"
+#            memory: "512Mi"
+#          requests:
+#            cpu: "0.25"
+#            memory: "256Mi"
+        ports:
+        - containerPort: 8880
+        #livenessProbe:
+        #  httpGet:
+        #    path: /probe/live
+        #    port: 8880
+        #  failureThreshold: 1
+        #  periodSeconds: 30
+        #startupProbe:
+        #  httpGet:
+        #    path: /probe/live
+        #    port: 8880
+        #  failureThreshold: 20
+        #  periodSeconds: 30
+        #  initialDelaySeconds: 30
+        env:
+         # IN the kubernetes environment, we no longer need a configuration server
+#        - name: SPRING_PROFILE
+#          value: "aws-staging"
+#        - name: CONFIGSERVER_URI
+#          value: "http://configserver:8888"
+#        - name: CONFIGSERVER_PORT
+#          value: "8888"
+#        - name: DATABASE_URL
+#          value: "database"
+#        - name: DATABASESERVER_PORT
+#          value: "3306"
+        - name: ENCRYPT_KEY
+          value: "CWMS2018"
+        - name: COMPOSE_PROJECT_NAME
+          value: "CWMS-APP"
+        - name: TZ
+          value: "America/Los_Angeles"
+        volumeMounts:
+        - name: application-properties
+          mountPath: /usr/local/service/application.yml
+          subPath: application.yml
+      volumes:
+      - name: application-properties
+        configMap:
+          name: app-properties
+          items:
+            - key: application.yml
+              path: application.yml 
+---          
+apiVersion: v1
+kind: Service
+metadata:
+  name: adminservice
+  namespace: staging
+  labels:
+    app: adminservice
+spec:
+  selector:
+    app: adminservice
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 8078
+      targetPort: 8078
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: adminservice
+  namespace: staging
+  labels:
+    app: adminservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: adminservice
+  template:
+    metadata:
+      labels:
+        app: adminservice
+    spec:
+      nodeSelector:
+        subnet: t4g-private
+      containers:
+      - name: adminservice
+        image: garyzhangscm/cwms-adminserver:v1.15
+        args: ["--spring.config.location=/usr/local/service/application.yml", "--spring.profiles.active=echotech-staging", "--server.port=8078", "--spring.application.name=adminservice"]
+        imagePullPolicy: Always
+#        resources:
+#          limits:
+#            cpu: "0.5"
+#            memory: "512Mi"
+#          requests:
+#            cpu: "0.25"
+#            memory: "256Mi"
+        ports:
+        - containerPort: 8078
+        # livenessProbe:
+        #  httpGet:
+        #    path: /probe/live
+        #    port: 8078
+        #  failureThreshold: 1
+        #  periodSeconds: 30
+        #startupProbe:
+        #  httpGet:
+        #    path: /probe/live
+        #    port: 8078
+        #  failureThreshold: 20
+        #  periodSeconds: 30
+        #  initialDelaySeconds: 30
+        env:
+         # IN the kubernetes environment, we no longer need a configuration server
+#        - name: SPRING_PROFILE
+#          value: "aws-staging"
+#        - name: CONFIGSERVER_URI
+#          value: "http://configserver:8888"
+#        - name: CONFIGSERVER_PORT
+#          value: "8888"
+#        - name: DATABASE_URL
+#          value: "database"
+#        - name: DATABASESERVER_PORT
+#          value: "3306"
+        - name: ENCRYPT_KEY
+          value: "CWMS2018"
+        - name: COMPOSE_PROJECT_NAME
+          value: "CWMS-APP"
+        - name: TZ
+          value: "America/Los_Angeles"
+        volumeMounts:
+        - name: application-properties
+          mountPath: /usr/local/service/application.yml
+          subPath: application.yml
+      volumes:
+      - name: application-properties
+        configMap:
+          name: app-properties
+          items:
+            - key: application.yml
+              path: application.yml 
+---          
+apiVersion: v1
+kind: Service
+metadata:
+  name: quickbook
+  namespace: staging
+  labels:
+    app: quickbook
+spec:
+  selector:
+    app: quickbook
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 11818
+      targetPort: 11818
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quickbook
+  namespace: staging
+  labels:
+    app: quickbook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quickbook
+  template:
+    metadata:
+      labels:
+        app: quickbook
+    spec:
+      nodeSelector:
+        subnet: t4g-private
+      containers:
+      - name: quickbook
+        image: garyzhangscm/cwms-quickbook:v1.15
+        args: ["--spring.config.location=/usr/local/service/application.yml", "--spring.profiles.active=echotech-staging", "--server.port=11818", "--spring.application.name=quickbook"]
+        imagePullPolicy: Always 
+        ports:
+        - containerPort: 11818 
+        env: 
+        - name: ENCRYPT_KEY
+          value: "CWMS2018"
+        - name: COMPOSE_PROJECT_NAME
+          value: "CWMS-APP"
+        - name: TZ
+          value: "America/Los_Angeles"
+        volumeMounts:
+        - name: application-properties
+          mountPath: /usr/local/service/application.yml
+          subPath: application.yml
+      volumes:
+      - name: application-properties
+        configMap:
+          name: app-properties
+          items:
+            - key: application.yml
+              path: application.yml 
+

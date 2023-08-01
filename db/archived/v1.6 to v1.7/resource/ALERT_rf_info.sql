@@ -1,0 +1,1 @@
+ALTER TABLE rf_info ADD COLUMN current_location_id BIGINT;

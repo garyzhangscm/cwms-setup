@@ -1,0 +1,1 @@
+ALTER TABLE short_allocation ADD COLUMN work_order_quantity BIGINT;

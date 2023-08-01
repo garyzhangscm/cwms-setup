@@ -1,0 +1,620 @@
+#
+# General configuration for all applications
+#
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zuul-properties
+  namespace: staging 
+data:
+  application.yml: | 
+    zuul:
+      # By default, sensitiveHeaders=Cookie,Set-Cookie,Authorization, which will cause the Authorizaiton be
+      # ignored after flow the request by ZUUL, then if we need to use ZUUL in front of a OAuth2, we will
+      # fail because of the missing of Authorization section in HTML head. This Authorization section will
+      # include Basic ZWFnbGVleWU6dGhpc2lzc2VjcmV0, While Basic is the key word for basic type of authenticaiton
+      # and ZWFnbGVleWU6dGhpc2lzc2VjcmV0 is the encrypted Client:Secret
+      sensitiveHeaders: Cookie,Set-Cookie
+      ignored-services: "*"
+      prefix:  /api
+      routes:
+        layoutservice:
+          path: /layout/**
+          url: http://layoutservice:8180
+    #      serviceId: layoutservice
+        authservice:
+          path:  /auth/**
+          url: http://authserver:8901
+    #      serviceId: authserver
+        resourceservice:
+          path:  /resource/**
+          url: http://resourceservice:8280
+    #      serviceId: resourceservice
+        commonservice:
+          path:  /common/**
+          url: http://commonservice:8380
+    #      serviceId: commonservice
+        inventoryservice:
+          path:  /inventory/**
+          url: http://inventoryservice:8480
+    #      serviceId: inventoryservice
+        inboundservice:
+          path:  /inbound/**
+          url: http://inboundservice:8580
+    #      serviceId: inboundservice
+        outboundservice:
+          path:  /outbound/**
+          url: http://outboundservice:8680
+    #      serviceId: outboundservice
+        workorderservice:
+          path:  /workorder/**
+          url: http://workorderservice:8780
+    #      serviceId: workorderservice
+        integrationservice:
+          path:  /integration/**
+          url: http://integrationservice:8880
+    #      serviceId: integrationservice
+        adminservice:
+          path:  /admin/**
+          url: http://adminservice:8078
+    #      serviceId: adminservice
+        dblinkserver:
+          path:  /dblink/**
+          url: http://dblinkserver:11808
+        quickbook:
+          path:  /quickbook/**
+          url: http://quickbook:11818
+      host:
+        time-to-live: -1
+        connect-timeout-millis: 5000
+        max-per-route-connections: 10000
+        max-total-connections: 5000
+        socket-timeout-millis: 6000000
+        semaphore:
+          max-semaphores: 500
+
+
+    layoutservice:
+      ribbon:
+        listOfServers: http://layoutservice:8180
+
+    authservice:
+      ribbon:
+        listOfServers: http://authserver:8901
+
+    resourceservice:
+      ribbon:
+        listOfServers: http://resourceservice:8280
+
+    commonservice:
+      ribbon:
+        listOfServers: http://commonservice:8380
+
+    inventoryservice:
+      ribbon:
+        listOfServers: http://inventoryservice:8480
+
+    inboundservice:
+      ribbon:
+        listOfServers: http://inboundservice:8580
+
+    outboundservice:
+      ribbon:
+        listOfServers: http://outboundservice:8680
+
+    workorderservice:
+      ribbon:
+        listOfServers: http://workorderservice:8780
+
+    integrationservice:
+      ribbon:
+        listOfServers: http://integrationservice:8880
+
+    adminservice:
+      ribbon:
+        listOfServers: http://adminservice:8078
+    quickbook:
+      ribbon:
+        listOfServers: http://quickbook:11818
+
+    hystrix:
+      command:
+        default:
+          execution:
+            isolation:
+              thread:
+                timeoutInMilliseconds: 25000
+    ribbon:
+      ReadTimeout: 6000000
+      connection-timeout: 3000
+      #eureka:
+        #enabled: false
+
+    # Expose * so we can access /actuator/routes
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: "*"
+    # disable eureka in staging environment as we are using kubernetes
+    # eureka:
+    #  instance:
+    #    preferIpAddress: true
+    #  client:
+    #    registerWithEureka: true
+    #    fetchRegistry: true
+    #    serviceUrl:
+    #      defaultZone: http://eurekaserver:8761/eureka
+
+
+    logging:
+      level:
+        com.netflix: WARN
+        org.springframework.web: WARN
+        com.garyzhangscm: DEBUG
+      file: zuulservice.log
+      path: /tmp/logs
+
+
+
+    security:
+      oauth2:
+        client:
+          access-token-uri: http://authserver:8901/oauth/token
+          clientId: "cwms"
+          clientSecret: "gz-cwms"
+          grantType: password
+          scope: webclient
+        resource:
+          ##   userInfoUri: http://localhost:5555/api/auth/user
+          # userInfoUri: http://localhost:8901/user
+          # tokenInfoUri: http://localhost:8901/oauth2/check_token
+          userInfoUri: http://authserver:8901/user
+          tokenInfoUri: http://authserver:8901/oauth/check_token
+
+    server:
+      connection-timeout: -1
+    spring:
+      servlet:
+        multipart:
+          max-file-size: 10MB
+          max-request-size: 10MB
+      main:
+        allow-circular-references: true
+      #=============== Redis  =================
+      # Setup redis server
+      redis:
+        database: 0 
+        host: redis
+        port: 6379  
+        # Redis服务器连接密码（默认为空）
+        #password=zwqh
+        timeout: 3000
+        ################ Redis 线程池设置 ##############
+        # 连接池最大连接数（使用负值表示没有限制） 默认 8
+        lettuce:
+          pool:
+            max-active: 8
+            # 连接池最大阻塞等待时间（使用负值表示没有限制） 默认 -1
+            max-wait: -1
+            # 连接池中的最大空闲连接 默认 8
+            max-idle: 8
+            # 连接池中的最小空闲连接 默认 0
+            min-idle: 0  
+          
+---
+### 
+# zuul server 
+###
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: zuulserver
+  namespace: staging
+  labels:
+    app: zuulserver
+spec:
+  selector:
+    app: zuulserver
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 5555
+      targetPort: 5555
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zuulserver
+  namespace: staging
+  labels:
+    app: zuulserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zuulserver
+  template:
+    metadata:
+      labels:
+        app: zuulserver
+    spec:
+      nodeSelector:
+        subnet: t4g-private
+      containers:
+      - name: zuulserver
+        image: garyzhangscm/cwms-zuulsvr:v1.15
+        imagePullPolicy: Always
+        args: ["--spring.config.location=/usr/local/service/application.yml", "--spring.profiles.active=echotech-staging", "--server.port=5555", "--spring.main.allow-circular-references=true"]
+        ports:
+        - containerPort: 5555
+        env:
+#        - name: CONFIGSERVER_URI
+#          value: "http://configserver:8888"
+#        - name: CONFIGSERVER_PORT
+#          value: "8888"
+#        - name: DATABASE_URL
+#          value: "database"
+#        - name: DATABASESERVER_PORT
+#          value: "3306"
+        - name: ENCRYPT_KEY
+          value: "CWMS2018"
+        - name: COMPOSE_PROJECT_NAME
+          value: "CWMS-APP"
+        - name: TZ
+          value: "America/Los_Angeles"
+        volumeMounts:
+        - name: zuul-properties
+          mountPath: /usr/local/service/application.yml
+          subPath: application.yml
+      volumes:
+      - name: zuul-properties
+        configMap:
+          name: zuul-properties
+          items:
+            - key: application.yml
+              path: application.yml 
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: zuulserver
+  namespace: staging
+  annotations:
+    #kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+spec:
+  ingressClassName: alb
+  rules:
+  #- host: staging.claytechsuite.com    
+  # SSL Setting (Optional only if we are not using certificate-arn annotation)
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: zuulserver
+            port:
+              number: 5555 
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper
+  namespace: staging
+  labels:
+    app: zookeeper
+spec:
+  selector:
+    app: zookeeper
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 2181
+      targetPort: 2181
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zookeeper
+  namespace: staging
+  labels:
+    app: zookeeper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zookeeper
+  template:
+    metadata:
+      labels:
+        app: zookeeper
+    spec:
+      nodeSelector:
+        # subnet: kafka
+        subnet: t4g-private
+      containers:
+      - name: zookeeper
+        # image: wurstmeister/zookeeper
+        image: zookeeper:3.8.0-openjdk
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1024Mi"
+          requests:
+            cpu: "0.5"
+            memory: "1024Mi"
+        ports:
+        - containerPort: 2181
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafkaservice
+  namespace: staging
+  labels:
+    app: kafka
+spec:
+  selector:
+    app: kafka
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 9092
+      targetPort: 9092
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+  namespace: staging
+  labels:
+    app: kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      nodeSelector:
+        # subnet: kafka
+        subnet: t4g-private
+      containers:
+      - name: kafka
+        image: wurstmeister/kafka
+        resources:
+          limits:
+            cpu: "2"
+            memory: "3072Mi"
+          requests:
+            cpu: "1"
+            memory: "2048Mi"
+        ports:
+        - containerPort: 9092
+        env:
+        - name: KAFKA_ADVERTISED_HOST_NAME
+          value: "kafkaservice"
+        - name: KAFKA_BROKER_ID
+          value: "10"      
+        - name: KAFKA_ZOOKEEPER_CONNECT
+          value: "zookeeper:2181"
+        - name: TZ
+          value: "America/Los_Angeles"
+        - name: KAFKA_CREATE_TOPICS
+          value: "ops_transaction:1:1,order_activity:1:1,
+                     test_data_init:1:1,
+                     short_allocation:1:1,
+                     INTEGRATION_CUSTOMER:1:1,
+                     INTEGRATION_CLIENT:1:1,
+                     INTEGRATION_SUPPLIER:1:1,
+                     INTEGRATION_ITEM:1:1,
+                     INTEGRATION_ITEM_FAMILY:1:1,
+                     INTEGRATION_ITEM_PACKAGE_TYPE:1:1,
+                     INTEGRATION_ITEM_UNIT_OF_MEASURE:1:1,
+                     INVENTORY_ACTIVITY:1:1,
+                     INVENTORY_ADJUSTMENT_REQUEST_PROCESSED:1:1,
+                     INTEGRATION_INVENTORY_ADJUSTMENT_CONFIRMATION:1:1,
+                     INTEGRATION_INVENTORY_ATTRIBUTE_CHANGE_CONFIRMATION:1:1,
+                     SYSTEM_ERROR:1:1,
+                     INTEGRATION_ORDER:1:1,
+                     INTEGRATION_ORDER_LINE:1:1,
+                     INTEGRATION_RECEIPT:1:1,
+                     INTEGRATION_RECEIPT_LINE:1:1,
+                     INTEGRATION_ORDER_CONFIRMATION:1:1,
+                     INTEGRATION_ORDER_LINE_CONFIRMATION:1:1,
+                     INTEGRATION_SHIPMENT_LINE_CONFIRMATION:1:1,
+                     INTEGRATION_RECEIPT_CONFIRMATION:1:1,
+                     INTEGRATION_RECEIPT_LINE_CONFIRMATION:1:1,
+                     INTEGRATION_WORK_ORDER_CONFIRMATION:1:1,
+                     INTEGRATION_TRAILER_APPOINTMENT:1:1,
+                     INTEGRATION_STOP:1:1,
+                     INTEGRATION_WORK_ORDER:1:1,
+                     INTEGRATION_BILL_OF_MATERIAL:1:1,
+                     INTEGRATION_PURCHASE_ORDER:1:1,
+                     EMAIL_ALERT:1:1,
+                     WAREHOUSE_TRANSFER_RECEIPT:1:1,
+                     BILLABLE_REQUEST:1:1,
+                     BILLABLE_ACTIVITY:1:1,
+                     USER_LOGIN:1:1"  
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: staging
+  labels:
+    app: redis
+spec:
+  selector:
+    app: redis
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: staging
+  labels:
+    app: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      nodeSelector:
+        subnet: t4g-private
+      containers:
+      - name: redis
+        image: redis:6.0
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: "1024Mi"
+          requests:
+            cpu: "0.5"
+            memory: "1024Mi"
+        ports:
+        - containerPort: 6379        
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: adminer
+  namespace: staging
+  labels:
+    app: adminer
+spec:
+  selector:
+    app: adminer
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: database
+  namespace: staging
+  labels:
+    app: database
+spec:
+  selector:
+    app: database
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database
+  namespace: staging
+  labels:
+    app: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database
+  template:
+    metadata:
+      labels:
+        app: database
+    spec:
+      nodeSelector:
+        subnet: t4g-private
+      containers:
+      - name: database
+        image: mysql
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "RootPassword"
+        - name: MYSQL_DATABASE
+          value: "cwms"
+        - name: MYSQL_USER
+          value: "cwms_dba"
+        - name: MYSQL_PASSWORD
+          value: "mysqlPassword"
+        - name: COMPOSE_PROJECT_NAME
+          value: "DATABASE"
+        - name: TZ
+          value: "America/Los_Angeles"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: adminer
+  namespace: staging
+  labels:
+    app: adminer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: adminer
+  template:
+    metadata:
+      labels:
+        app: adminer
+    spec:
+      nodeSelector:
+        subnet: t4g-private
+      containers:
+      - name: adminer
+        image: adminer
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: "512Mi"
+          requests:
+            cpu: "0.25"
+            memory: "256Mi"
+        ports:
+        - containerPort: 8080
+        env:
+        - name: COMPOSE_PROJECT_NAME
+          value: "DATABASE"
+        - name: TZ
+          value: "America/Los_Angeles"
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: adminer
+  namespace: staging
+  annotations:
+ #   kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+spec:
+  ingressClassName: alb
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: adminer
+            port:
+              number: 8080

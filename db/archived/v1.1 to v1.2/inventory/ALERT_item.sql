@@ -1,0 +1,1 @@
+ALTER TABLE item ADD COLUMN non_inventory_item BOOLEAN;

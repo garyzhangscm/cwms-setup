@@ -1,0 +1,80 @@
+###
+# Frontend application
+###
+apiVersion: v1
+kind: Service
+metadata:
+  name: webclient
+  namespace: staging
+  labels:
+    app: webclient
+spec:
+  selector:
+    app: webclient
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webclient
+  namespace: staging
+  labels:
+    app: webclient
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webclient
+  template:
+    metadata:
+      labels:
+        app: webclient
+    spec:
+#      affinity:
+#        nodeAffinity:
+#          requiredDuringSchedulingIgnoredDuringExecution:
+#          - labelSelector:
+#              matchExpressions:
+#              - key: subnet
+#                operator: In
+#                values:
+#                - public
+      nodeSelector:
+        subnet: t4g-private
+      containers:
+      - name: webclient
+        image: garyzhangscm/cwms-client:v15.1.15
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: webclient
+  namespace: staging
+  annotations:
+    # kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    ## SSL Settings
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}, {"HTTP":80}]'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-1:883332028116:certificate/0b23bda0-5c45-4c85-b025-91b1df65d809
+spec:
+  ingressClassName: alb
+  rules:
+  #- host: staging.claytechsuite.com    
+  # SSL Setting (Optional only if we are not using certificate-arn annotation)
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: webclient
+            port:
+              number: 80 
+
