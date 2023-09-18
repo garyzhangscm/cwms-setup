@@ -1,0 +1,4 @@
+ALTER TABLE qc_inspection_request_inventory DROP FOREIGN KEY qc_inspection_request_inventory_ibfk_2;
+
+ALTER TABLE qc_inspection_request DROP FOREIGN KEY qc_inspection_request_ibfk_1;
+ 
