@@ -1,0 +1,4 @@
+ 
+ALTER TABLE inbound_receiving_configuration ADD COLUMN use_receipt_check_in_time_as_in_warehouse_datetime BOOLEAN; 
+ 
+update inbound_receiving_configuration set use_receipt_check_in_time_as_in_warehouse_datetime = true
